@@ -198,7 +198,7 @@ export class Jitsi implements comm.BroadcastComms {
                         muc: "conference.jitsi." + config.url.host
                     },
                     serviceUrl: config.jitsiUrl,
-                    clientNode: "https://ennuicastr.com/"
+                    clientNode: config.url.origin + "/"
                 });
 
                 this.connection.addEventListener(JitsiMeetJS.events.connection.CONNECTION_ESTABLISHED, res);

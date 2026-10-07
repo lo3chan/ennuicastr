@@ -438,14 +438,10 @@ function copyInvite() {
 // Update the credit cost/rate meter
 function updateCreditCost() {
     const masterUI = ui.ui.panels.host;
-    if (!credits.creditCost || !credits.creditRate)
+    if (!masterUI || !masterUI.recordingCost || !masterUI.recordingRate)
         return;
-    const cc = credits.creditCost;
-    const cr = credits.creditRate;
-    if (net.mode === prot.mode.rec)
-        cr[0] += cr[1]; // Report the *next* minute so you're not surprised
-    masterUI.recordingCost.value = creditsToDollars(cr[0], cc);
-    masterUI.recordingRate.value = creditsToDollars(cr[1]*60, cc) + "/hour";
+    masterUI.recordingCost.value = "Unlimited";
+    masterUI.recordingRate.value = "Unlimited";
 }
 
 // Convert a number of credits to dollars and cents
@@ -884,163 +880,12 @@ export function initCloudStorage(opts: {
     return ret;
 
     async function go() {
-        let webDAVInfo: {
-            username: string, password: string, server: string
-        } | null = null;
-
-        // We change the label based on the actual usage
-        masterUI.saveVideoInCloudLbl.innerHTML = "&nbsp;Save video recordings in cloud storage";
-
-        if (!masterUI.saveVideoInCloud.checked) {
-            fileStorage.clearRemoteFileStorage();
-            localStorage.removeItem("master-video-save-in-cloud-provider");
-            ret.transientActivation.res();
-            ret.completion.res();
-            return;
-        }
-
-        let provider = localStorage.getItem("master-video-save-in-cloud-provider");
-        if (!provider || opts.ignoreCookieProvider) {
-            const csPanel = ui.ui.panels.cloudStorage;
-            csPanel.desc.style.display = opts.showDesc ? "" : "none";
-            provider = await new Promise(res => {
-                csPanel.googleDrive.onclick = () => res("googleDrive");
-                csPanel.dropbox.onclick = () => res("dropbox");
-                csPanel.webdav.onclick = () => res("webDAV");
-                csPanel.fsdh.style.display = opts.showFSDH ? "" : "none";
-                csPanel.fsdh.onclick = () => res("fsdh");
-                csPanel.cancel.onclick = () => res("cancel");
-                csPanel.onhide = () => res("cancel");
-                ui.showPanel(csPanel);
-            });
-            ui.showPanel(null);
-
-            // FSDH isn't handled here
-            if (provider === "fsdh") {
-                provider = "cancel";
-                masterUI.saveVideoInFSDH.checked = true;
-                localStorage.setItem("master-video-save-in-fsdh-" + config.useVideoRec, "1");
-            }
-
-            // For WebDAV, we still need to get a username and password
-            if (provider === "webDAV") {
-                const wdp = ui.ui.panels.webdav;
-                wdp.username.value =
-                    wdp.password.value =
-                    wdp.url.value = "";
-                await new Promise<void>(res => {
-                    wdp.form.onsubmit = wdp.login.onclick = (ev: Event) => {
-                        if (wdp.username.value && wdp.password.value &&
-                            wdp.url.value) {
-                            webDAVInfo = {
-                                username: wdp.username.value,
-                                password: wdp.password.value,
-                                server: wdp.url.value
-                            };
-                            res();
-                        }
-                        ev.preventDefault();
-                        ev.stopPropagation();
-                    };
-                    wdp.onhide = res;
-                    ui.showPanel(wdp, wdp.username);
-                });
-                ui.showPanel(null);
-
-                if (webDAVInfo) {
-                    localStorage.setItem("webdav-username", webDAVInfo.username);
-                    localStorage.setItem("webdav-password", webDAVInfo.password);
-                    localStorage.setItem("webdav-server", webDAVInfo.server);
-                } else {
-                    provider = "cancel";
-                }
-            }
-
-            if (provider === "cancel") {
-                localStorage.removeItem("master-video-save-in-cloud-provider");
-                masterUI.saveVideoInCloud.checked = false;
-                localStorage.setItem("master-video-save-in-cloud-" + config.useVideoRec, "0");
-                fileStorage.clearRemoteFileStorage();
-                ret.transientActivation.res();
-                ret.completion.res();
-                return;
-            }
-            localStorage.setItem("master-video-save-in-cloud-provider", provider);
-        }
-
-        // Handle WebDAV info
-        if (provider === "webDAV" && !webDAVInfo) {
-            webDAVInfo = {
-                username: localStorage.getItem("webdav-username"),
-                password: localStorage.getItem("webdav-password"),
-                server: localStorage.getItem("webdav-server")
-            };
-        }
-
-        let longName = provider;
-        switch (provider) {
-            case "googleDrive": longName = "Google Drive"; break;
-            case "dropbox": longName = "Dropbox"; break;
-            case "webDAV": longName = "ownCloud"; break;
-        }
-
-        try {
-            const rfs = await fileStorage.getRemoteFileStorage({
-                provider: <any> provider,
-                webDAVInfo: webDAVInfo || void 0,
-                transientActivation: async () => {
-                    const p = ui.onTransientActivation(async () => {});
-                    ui.forceTransientActivation();
-                    ret.transientActivation.res();
-                    await p;
-                },
-                lateTransientActivation: async () => {
-                    await ui.transientActivation(
-                        "Cloud login",
-                        '<i class="bx bx-log-in"></i> Log in to continue using cloud storage',
-                        {
-                            makeModal: true,
-                            force: true
-                        }
-                    );
-                },
-                cancellable: async () => {
-                    await ui.transientActivation(
-                        "Cancel cloud login",
-                        '<i class="bx bx-log-out"></i> Cancel cloud login',
-                        {
-                            makeModal: true,
-                            force: true
-                        }
-                    );
-                },
-                hideCancellable: () => {
-                    ui.unsetModal();
-                    ui.showPanel(null);
-                },
-                forcePrompt: !!opts.ignoreCookieProvider
-            });
-            masterUI.saveVideoInCloudLbl.innerHTML =
-                `&nbsp;Save video recordings in ${longName}`;
-            ret.transientActivation.res();
-            ret.completion.res();
-            rfs.clearExpired();
-
-        } catch (ex) {
-            log.pushStatus(
-                "file-storage",
-                "Failed to log in to cloud storage. Files will not be stored in the cloud!",
-                {
-                    timeout: 10000
-                }
-            );
-            localStorage.removeItem("master-video-save-in-cloud-provider");
-            masterUI.saveVideoInCloud.checked = false;
-            localStorage.setItem(`master-video-save-in-cloud-${config.useVideoRec}`, "0");
-            ret.transientActivation.res();
-            ret.completion.res();
-
-        }
+        // In self-hosted studio deployment, recordings save directly on local server
+        masterUI.saveVideoInCloud.checked = false;
+        fileStorage.clearRemoteFileStorage();
+        localStorage.removeItem("master-video-save-in-cloud-provider");
+        ret.transientActivation.res();
+        ret.completion.res();
     }
 }
 
