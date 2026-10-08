@@ -216,12 +216,12 @@ function loadMainMenu() {
     };
 
     ui.panels.webdav = {
-        wrapper: gebi("ec3-webdav-panel"),
-        form: gebi("ec3-webdav-form"),
-        username: gebi("ec3-webdav-username"),
-        password: gebi("ec3-webdav-password"),
-        url: gebi("ec3-webdav-url"),
-        login: gebi("ec3-webdav-login-btn")
+        wrapper: gebi("ec3-webdav-panel") || (dce("dialog") as any),
+        form: gebi("ec3-webdav-form") || (dce("form") as any),
+        username: gebi("ec3-webdav-username") || (dce("input") as any),
+        password: gebi("ec3-webdav-password") || (dce("input") as any),
+        url: gebi("ec3-webdav-url") || (dce("input") as any),
+        login: gebi("ec3-webdav-login-btn") || (dce("button") as any)
     };
 
     const sets = ui.panels.settings = {
@@ -449,8 +449,8 @@ function loadHostUI() {
         stopNoB: gebi("ec3-stop-no-button"),
         inviteB: gebi("ec3-invite-button2"),
         acceptRemoteVideo: gebi("ec3-accept-guest-video-chk"),
-        saveVideoInCloud: gebi("ec3-video-rec-save-in-cloud-chk"),
-        saveVideoInCloudLbl: gebi("ec3-video-rec-save-in-cloud-lbl"),
+        saveVideoInCloud: (gebi("ec3-video-rec-save-in-cloud-chk") || dce("input")) as HTMLInputElement,
+        saveVideoInCloudLbl: (gebi("ec3-video-rec-save-in-cloud-lbl") || dce("label")) as HTMLLabelElement,
         saveVideoInFSDHHider: gebi("ec3-video-rec-save-in-fsdh-hider"),
         saveVideoInFSDH: gebi("ec3-video-rec-save-in-fsdh-chk"),
         downloadVideoLive: gebi("ec3-video-rec-download-chk"),
@@ -624,13 +624,13 @@ function loadUserList() {
 
 function loadCloudStorage() {
     ui.panels.cloudStorage = {
-        wrapper: gebi("ec3-cloud-storage-sel-panel"),
-        desc: gebi("ec3-cloud-storage-desc"),
-        googleDrive: gebi("ec3-google-drive-btn"),
-        dropbox: gebi("ec3-dropbox-btn"),
-        webdav: gebi("ec3-cloud-webdav-btn"),
-        fsdh: gebi("ec3-cloud-storage-fsdh-btn"),
-        cancel: gebi("ec3-cloud-storage-cancel-btn")
+        wrapper: gebi("ec3-cloud-storage-sel-panel") || (dce("dialog") as any),
+        desc: gebi("ec3-cloud-storage-desc") || (dce("section") as any),
+        googleDrive: gebi("ec3-google-drive-btn") || (dce("button") as any),
+        dropbox: gebi("ec3-dropbox-btn") || (dce("button") as any),
+        webdav: gebi("ec3-cloud-webdav-btn") || (dce("button") as any),
+        fsdh: gebi("ec3-cloud-storage-fsdh-btn") || (dce("button") as any),
+        cancel: gebi("ec3-cloud-storage-cancel-btn") || (dce("button") as any)
     };
 }
 
